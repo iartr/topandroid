@@ -13,4 +13,10 @@
 
 1. Скачать JDK 17
 2. Скачать IntelliJ IDEA Community Edition
-3. Запустить `src/main/kotlin/homework1_1/BaseKotlin.kt`
+3. Запустить Main класс моего решения - `base_project/Main.kt`
+
+## Модуль №1 — базовый Kotlin
+
+1. [Лекция №1](lecture%201.1.md) и [домашка №1](homework%201.1.md)
+2. [Лекция №2](lecture%201.2.md) и [домашка №2](homework%201.2.md)
+3. [Лекция №3](lecture%201.3.md) и [домашка №3](homework%201.3.md)
