@@ -1,6 +1,7 @@
 ### IntelliJ IDEA ###
 .idea/
 out/
+patches/
 !**/src/main/**/out/
 !**/src/test/**/out/
 
