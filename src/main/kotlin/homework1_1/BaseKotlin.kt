@@ -16,18 +16,18 @@ fun main() {
 
     while (true) {
         println("Введи число")
-        val input = (readlnOrNull()?.trim())
+        val input = readlnOrNull()?.trim()
 
         when {
             input == null || input.isEmpty() -> {
                 println("Пожалуйста, введите число или команду")
                 continue
             }
-            input == "exit" -> {
+            input.trim().equals("exit", ignoreCase = true) -> {
                 println("EOF.До встречи!")
                 break
             }
-            input == "help" -> {
+            input.trim().equals("help", ignoreCase = true) -> {
                 println("Команды: help - справка, exit - выход")
                 continue
             }
