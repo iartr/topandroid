@@ -1,23 +1,29 @@
 package base_project
 
-// data class — автоматические equals/hashCode/toString + неизменяемость по умолчанию (val)
 data class GameConfig(
     val min: Int,
     val max: Int,
-    val maxAttempts: Int? = null, // nullable: может быть "без лимита"
-    val allowHints: Boolean = true
-) {
-    init {
-        require(min < max) { "min должен быть меньше max" }
-    }
+    val maxAttempts: Int? = null,
+    val allowHints: Boolean = false
+)
 
-    companion object {
-        fun fromDifficulty(d: Difficulty): GameConfig = when (d) {
-            Difficulty.EASY   -> GameConfig(0, 50,  null, allowHints = true)
-            Difficulty.NORMAL -> GameConfig(0, 100, null, allowHints = true)
-            Difficulty.HARD   -> GameConfig(0, 100, maxAttempts = 7, allowHints = false)
+fun createDifficultyStrategy(level: String): DifficultyStrategy {
+    return when(level.lowercase().trim()) {
+        "easy" -> object : DifficultyStrategy {
+            override fun getMaxAttempts() = 15
+            override fun getRange() = 1..50
+            override fun getHintPenalty() = 0
         }
+        "normal" -> object : DifficultyStrategy {
+            override fun getMaxAttempts() = 10
+            override fun getRange() = 1..100
+            override fun getHintPenalty() = 1
+        }
+        "hard" -> object : DifficultyStrategy {
+            override fun getMaxAttempts() = 7
+            override fun getRange() = 1..200
+            override fun getHintPenalty() = 2
+        }
+        else -> throw IllegalArgumentException("Unknown level: $level")
     }
 }
-
-enum class Difficulty { EASY, NORMAL, HARD }
