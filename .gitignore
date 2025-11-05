@@ -33,4 +33,7 @@ bin/
 .DS_Store
 
 ### Custom ###
-solutions1_*
+patches/
+lectures/
+**solutions**
+task_for_cursor.txt

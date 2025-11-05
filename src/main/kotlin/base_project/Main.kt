@@ -3,28 +3,42 @@ package base_project
 import guessing.StatsTracker
 import kotlin.system.exitProcess
 
-private const val APP_NAME: String = "Guess 0..100" // константа (тип можно не указывать — здесь показываем явно)
+private const val APP_NAME: String = "Guess 0..100"
 
 fun main() {
     println("=== $APP_NAME ===")
     println("Команды: help | exit | stats")
 
-    // 1) Демонстрация enum + when: выбираем сложность
-    val difficulty = askDifficulty()
-    val config = GameConfig.fromDifficulty(difficulty)
+    // --- Выбор сложности ---
+    val difficultyLevel = askDifficulty() // "easy", "normal", "hard"
+    val strategy = createDifficultyStrategy(difficultyLevel)
 
-    // 2) Демонстрация интерфейса и внедрения зависимости (DI) без фреймворка
+    // --- Конфигурация игры ---
+    val configMin = strategy.getRange().first
+    val configMax = strategy.getRange().last
+    val maxAttempts = strategy.getMaxAttempts()
+    val allowHints = strategy.getHintPenalty() == 0
+
+    val config = GameConfig(
+        min = strategy.getRange().first,
+        max = strategy.getRange().last,
+        maxAttempts = strategy.getMaxAttempts(),
+        allowHints = strategy.getHintPenalty() == 0
+    )
+
+
+    // Генератор случайного числа
     val randomProvider: RandomProvider = KotlinRandomProvider()
 
-    // 3) Основной движок игры (инкапсулирует логику)
+    // Игровой движок
     val engine = GameEngine(config, randomProvider)
 
-    // 4) Статистика (демонстрация работы со временем JVM + коллекции)
+    // Статистика
     val stats = StatsTracker()
 
     gameLoop@ while (true) {
         print("Введите число [${config.min}..${config.max}] или команду: ")
-        val line = readlnOrNull()?.trim() // nullable + safe call + Elvis ниже
+        val line = readlnOrNull()?.trim()
 
         when {
             line == null -> {
@@ -43,57 +57,56 @@ fun main() {
                 println(stats.formatSession())
                 continue@gameLoop
             }
-            line.isBlank() -> {
-                // пустой ввод, просто продолжаем
-                continue@gameLoop
-            }
+            line.isBlank() -> continue@gameLoop
             else -> {
-                // Парсим целое. Nullable возвращаемое значение тренирует работу с null.
                 val guess: Int? = InputValidator.tryParseInt(line)
                 if (guess == null) {
                     println("Введите, пожалуйста, целое число.")
                     continue@gameLoop
                 }
 
-                // Оценка попытки (sealed и when-ветвление)
-                val result: GuessResult = engine.evaluateGuess(guess)
+                val result = engine.evaluateGuess(guess)
                 stats.onGuess(result)
 
-                // Форматирование ответа вынесено в отдельный модуль (лямбда внутри)
                 println(Feedback.format(result, engine.remainingAttemptsOrNull()))
 
-                // Условие победы
+                // Если угадали число
                 if (result is GuessResult.Correct) {
                     println("Секретное число: ${engine.revealSecret()} (угадано за ${result.attempts} попыток)")
                     stats.onRoundFinished(result.attempts)
 
-                    // Небольшая демонстрация if/else как выражений
                     val playAgain = askYesNo("Сыграть ещё? (y/n): ")
                     if (playAgain) {
                         engine.reset()
                         stats.startNewRound()
-                    } else {
-                        break@gameLoop
-                    }
+                    } else break@gameLoop
+                }
+                // Если достигнут лимит попыток
+                else if (config.maxAttempts != null && engine.remainingAttemptsOrNull() == 0) {
+                    println("Попытки закончились! Секретное число было: ${engine.revealSecret()}")
+                    stats.onRoundFinished(engine.historySnapshot().size)
+                    val playAgain = askYesNo("Сыграть ещё? (y/n): ")
+                    if (playAgain) {
+                        engine.reset()
+                        stats.startNewRound()
+                    } else break@gameLoop
                 }
             }
         }
     }
 
-    // Завершение сессии
-    println()
-    println("=== Итоги ===")
+    println("\n=== Итоги ===")
     println(stats.finalizeAndFormat())
     exitProcess(0)
 }
 
-private fun askDifficulty(): Difficulty {
+private fun askDifficulty(): String {
     while (true) {
         println("Выберите сложность: 1) EASY  2) NORMAL  3) HARD")
-        when (readlnOrNull()?.trim()) {
-            "1", "easy", "EASY" -> return Difficulty.EASY
-            "2", "normal", "NORMAL" -> return Difficulty.NORMAL
-            "3", "hard", "HARD" -> return Difficulty.HARD
+        when (readlnOrNull()?.trim()?.lowercase()) {
+            "1", "easy" -> return "easy"
+            "2", "normal" -> return "normal"
+            "3", "hard" -> return "hard"
             else -> println("Не понял. Введите 1, 2 или 3.")
         }
     }
@@ -106,14 +119,14 @@ private fun askYesNo(prompt: String): Boolean {
         "n", "no", "нет", "н" -> false
         else -> {
             println("Введите y/n.")
-            askYesNo(prompt) // рекурсия допустима, но можно и цикл
+            askYesNo(prompt)
         }
     }
 }
 
-private fun helpText(config: GameConfig): String = """
+private fun helpText(config: Any): String = """
     Правила:
-    — Я загадываю целое число в диапазоне ${config.min}..${config.max}.
+    — Я загадываю целое число.
     — Вводите число, а я отвечаю: больше/меньше/угадал.
     — Команды: help, stats, exit.
 """.trimIndent()

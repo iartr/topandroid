@@ -1,5 +1,7 @@
 package base_project
 
+import base_project.GameConfig
+
 // Демонстрация модификаторов: класс открыт по умолчанию в Kotlin? Нет, закрыт.
 // Мы явно не даем наследоваться (не ставим open) — инкапсулируем логику.
 class GameEngine(
